@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Space+Grotesk:wght@300..700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "Courier Prime", "Courier New", monospace;
+  --font-sans: "Space Grotesk", sans-serif;
+
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-stamp: stamp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+  --animate-flicker: flicker 6s infinite;
+}
+
+/* Keyframe animations */
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px) rotate(-1deg); }
+  40%, 80% { transform: translateX(6px) rotate(1deg); }
+}
+
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.5) rotate(-20deg);
+    filter: blur(4px);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(0.95) rotate(-12deg);
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+    filter: blur(0);
+  }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.05; }
+  12% { opacity: 0.07; }
+  13% { opacity: 0.03; }
+  25% { opacity: 0.06; }
+  52% { opacity: 0.04; }
+  53% { opacity: 0.08; }
+  54% { opacity: 0.03; }
+  75% { opacity: 0.05; }
+  88% { opacity: 0.06; }
+  89% { opacity: 0.02; }
+}
+
+/* Analog printed page styling and paper noise grain filter */
+.bg-grain-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-color: transparent;
+  z-index: 9999;
+}
+
+/* Newspaper halftones & letterpress imperfect print effect */
+.letterpress-text {
+  color: #1a1a1a;
+  text-shadow: 
+    0.5px 0.5px 0.5px rgba(0,0,0,0.15),
+    -0.5px -0.5px 0px rgba(255,255,255,0.7);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes board-pin-drop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -120%) rotate(-8deg) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -45%) rotate(2deg) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--pin-rot, 0deg)) scale(1);
+  }
+}
+
+@keyframes board-dept-unlock {
+  0% { filter: brightness(0.4); opacity: 0.5; }
+  100% { filter: brightness(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-board-pin-drop {
+  animation: board-pin-drop 0.85s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+}
+
+.animate-board-dept-unlock {
+  animation: board-dept-unlock 1.4s ease-out forwards;
+}
+
+/* ── Game cursor vocabulary (consistent affordances) ── */
+.cursor-game-default {
+  cursor: default;
+}
+.cursor-game-action {
+  cursor: pointer;
+}
+.cursor-game-inspect {
+  cursor: zoom-in;
+}
+.cursor-game-spot {
+  cursor: crosshair;
+}
+.cursor-game-reference {
+  cursor: help;
+}
+.cursor-game-locked {
+  cursor: not-allowed;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Custom typewriter sound text-cursor */
+.typewriter-cursor::after {
+  content: "█";
+  animation: blink 0.8s infinite step-start;
+  font-size: 0.9em;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Printing styling to allow neat export of certificates */
+@media print {
+  body {
+    background-color: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+

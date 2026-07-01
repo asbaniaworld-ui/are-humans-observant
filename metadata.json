@@ -1,0 +1,6 @@
+{
+  "name": "Are Humans Observant?",
+  "description": "A retro-futuristic spot-the-difference game testing human observational skills versus machines, styled after 1960s Popular Science magazines and vintage technical manuals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
