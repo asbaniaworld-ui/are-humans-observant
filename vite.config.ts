@@ -4,7 +4,10 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
   return {
+    base: isGitHubPages ? '/are-humans-observant/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
