@@ -1,7 +1,6 @@
 import { assetUrl } from '../utils/assetUrl';
 
-/** Relative public paths — resolved at runtime via assetUrl(). */
-const ARCHIVE_IMAGE_PATHS: Record<string, string> = {
+const ARCHIVE_IMAGE_FILES: Record<string, string> = {
   'arch-filing-cabinet-402': 'assets/archive/arch-filing-cabinet-402.png',
   'arch-subject-roster': 'assets/archive/arch-subject-roster.png',
   'arch-polaroid-wall': 'assets/archive/arch-polaroid-wall.png',
@@ -36,6 +35,11 @@ const ARCHIVE_IMAGE_PATHS: Record<string, string> = {
   'arch-final-protocol': 'assets/archive/arch-final-protocol.png',
 };
 
+/** @deprecated Use getArchiveImageUrl() for correct subpath resolution. */
+export const ARCHIVE_IMAGE_BY_ENTRY_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(ARCHIVE_IMAGE_FILES).map(([id, file]) => [id, assetUrl(file)]),
+);
+
 /** Intro lobby schematic objects → archive entry for inspect modal photos. */
 export const INTRO_OBJECT_ARCHIVE_IDS: Record<string, string> = {
   hanging_blueprint: 'arch-microfilm-reader',
@@ -45,18 +49,11 @@ export const INTRO_OBJECT_ARCHIVE_IDS: Record<string, string> = {
 };
 
 export function getArchiveImageUrl(entryId: string): string | undefined {
-  const rel = ARCHIVE_IMAGE_PATHS[entryId];
-  return rel ? assetUrl(rel) : undefined;
+  const file = ARCHIVE_IMAGE_FILES[entryId];
+  return file ? assetUrl(file) : undefined;
 }
 
 export function getIntroObjectImage(itemId: string): string | undefined {
   const entryId = INTRO_OBJECT_ARCHIVE_IDS[itemId];
   return entryId ? getArchiveImageUrl(entryId) : undefined;
-}
-
-/** @deprecated Use getArchiveImageUrl — kept for archive catalog injection. */
-export function getArchiveImageByEntryId(): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(ARCHIVE_IMAGE_PATHS).map(([id, rel]) => [id, assetUrl(rel)]),
-  );
 }

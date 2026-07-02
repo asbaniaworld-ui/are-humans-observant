@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import PlayableIntro from './components/PlayableIntro';
 import { 
   PuzzleOneSVG, 
   PuzzleTwoSVG, 
@@ -39,6 +38,7 @@ import {
 } from 'lucide-react';
 
 import { puzzlePanelCursor } from './utils/gameCursor';
+import PlayableIntro from './components/PlayableIntro';
 import PhaseInterlude from './components/exploration/PhaseInterlude';
 import ResearchBoard from './components/researchBoard/ResearchBoard';
 import EvelynMercerPortrait from './components/characters/EvelynMercerPortrait';
