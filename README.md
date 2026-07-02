@@ -26,13 +26,23 @@ npm run dev
 
 浏览器打开：**http://localhost:3000/**
 
+> 若页面空白并提示 `main.tsx 404`，说明 Pages 正在发布**源码**而非构建结果。  
+> 请到仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**（不要选 Deploy from a branch）。
+
 ## 在线游玩（GitHub Pages）
 
-代码推送到 GitHub 后，Actions 会自动构建并发布静态站点：
+推送 `main` 后 Actions 会自动构建。部署完成后访问：
 
 **https://asbaniaworld-ui.github.io/are-humans-observant/**
 
-> 若首次打开 404，请到仓库 **Settings → Pages → Build and deployment** 确认 Source 为 **GitHub Actions**，并等待 1–2 分钟让部署完成。
+### Pages 设置（必做，只需一次）
+
+1. 打开 https://github.com/asbaniaworld-ui/are-humans-observant/settings/pages  
+2. **Build and deployment → Source** 选 **GitHub Actions**  
+3. 打开 https://github.com/asbaniaworld-ui/are-humans-observant/actions 确认 `Deploy to GitHub Pages` 为绿色成功  
+4. 等待 1–2 分钟后刷新游戏链接
+
+> 若 Source 误设为 `Deploy from a branch / main / root`，浏览器会加载未编译的 `index.html`，控制台会出现 `main.tsx 404`。
 
 ## 为什么 GitHub 仓库页面不能直接玩？
 
