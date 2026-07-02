@@ -6,7 +6,9 @@ export const DR_MERCER_UNSPLASH_URL =
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
 
 /** Locally generated archival portrait (1960s lab psychologist). */
-export const DR_MERCER_GENERATED_URL = assetUrl('assets/dr-evelyn-mercer-portrait.png');
+export function getDrMercerGeneratedUrl(): string {
+  return assetUrl('assets/dr-evelyn-mercer-portrait.png');
+}
 
 interface EvelynMercerPortraitProps {
   size?: number;
@@ -49,7 +51,7 @@ export default function EvelynMercerPortrait({
   const src =
     photoSource === 'unsplash' || (photoSource === undefined && isMonitor)
       ? DR_MERCER_UNSPLASH_URL
-      : DR_MERCER_GENERATED_URL;
+      : getDrMercerGeneratedUrl();
 
   const [imgFailed, setImgFailed] = useState(false);
 
