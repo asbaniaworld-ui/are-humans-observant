@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { 
   PuzzleOneSVG, 
   PuzzleTwoSVG, 
@@ -37,7 +37,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 
-import PlayableIntro from './components/PlayableIntro';
+import { puzzlePanelCursor } from './utils/gameCursor';
 import PhaseInterlude from './components/exploration/PhaseInterlude';
 import ResearchBoard from './components/researchBoard/ResearchBoard';
 import EvelynMercerPortrait from './components/characters/EvelynMercerPortrait';
@@ -54,7 +54,8 @@ import {
 import { getHintOverlayStyle } from './content/puzzleHotspots';
 import type { ArchiveEntry, ExperimentRecord } from './content/types';
 import { useResearchArchive } from './hooks/useResearchArchive';
-import { puzzlePanelCursor } from './utils/gameCursor';
+
+const PlayableIntro = lazy(() => import('./components/PlayableIntro'));
 
 // --------------------------------------------------------------------
 // WEB AUDIO SYNTHESIZER ENGINE (No external audio file dependencies)
@@ -823,7 +824,11 @@ export default function App() {
 
   // Start the actual game session
   const startGame = () => {
-    initExperimentRun();
+    try {
+      initExperimentRun();
+    } catch (err) {
+      console.error('Blueprint assignment failed', err);
+    }
     setGameState('playing');
     setTimeLeft(240); // 240 seconds for the entire calibration protocol
     setIsTimerActive(true);
@@ -1159,12 +1164,20 @@ export default function App() {
           STATE 1.5: INTERACTIVE WALKING & CONVERSATION INTRO
          -------------------------------------------------------------------- */}
       {gameState === 'playable_intro' && (
-        <PlayableIntro 
-          onComplete={startGame}
-          isMuted={isMuted}
-          setIsMuted={setIsMuted}
-          audio={audio}
-        />
+        <Suspense
+          fallback={
+            <div className="min-h-[60vh] flex items-center justify-center font-mono text-sm text-black/70 bg-[#faf6eb]">
+              正在进入实验室引导场景…
+            </div>
+          }
+        >
+          <PlayableIntro
+            onComplete={startGame}
+            isMuted={isMuted}
+            setIsMuted={setIsMuted}
+            audio={audio}
+          />
+        </Suspense>
       )}
 
       {/* --------------------------------------------------------------------

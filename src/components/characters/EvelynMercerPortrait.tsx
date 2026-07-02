@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { assetUrl } from '../../utils/assetUrl';
 
 /** Original Unsplash portrait used in phase-dialogue monitor feed. */
 export const DR_MERCER_UNSPLASH_URL =
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80';
 
 /** Locally generated archival portrait (1960s lab psychologist). */
-export const DR_MERCER_GENERATED_URL = '/assets/dr-evelyn-mercer-portrait.png';
+export const DR_MERCER_GENERATED_URL = assetUrl('assets/dr-evelyn-mercer-portrait.png');
 
 interface EvelynMercerPortraitProps {
   size?: number;
