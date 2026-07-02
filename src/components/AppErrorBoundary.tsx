@@ -9,6 +9,7 @@ interface ErrorBoundaryState {
 }
 
 export class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  declare readonly props: Readonly<ErrorBoundaryProps>;
   state: ErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
