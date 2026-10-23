@@ -444,6 +444,16 @@ const SPECIMENS: Specimen[] = [
   }
 ];
 
+/**
+ * Specimen VII is identified by its archive title, not by a guessed array slot.
+ * The automated pre-scan shown before this specimen is scripted fiction for the
+ * narrative (algorithmic authority). It is not a vision model, eye tracker, or
+ * measured prediction. "99.2%" is in-world system confidence only.
+ */
+const SPECIMEN_VII_LEVEL = SPECIMENS.findIndex((specimen) => specimen.title.startsWith('标本 VII'));
+
+type TrustDecision = 'accept' | 'reject' | null;
+
 // Helper interface for telemetry logging
 interface LogItem {
   time: string;
@@ -628,7 +638,7 @@ const PUZZLE_COMPONENTS: Record<number, React.FC<any>> = {
 export default function App() {
   // Game states
   const [gameState, setGameState] = useState<
-    'intro' | 'playable_intro' | 'playing' | 'phase_report' | 'research_board' | 'phase_interlude' | 'phase_dialogue' | 'completed'
+    'intro' | 'playable_intro' | 'playing' | 'phase_report' | 'research_board' | 'phase_interlude' | 'phase_dialogue' | 'trust_assessment' | 'completed'
   >('intro');
   const [interludeSceneQueue, setInterludeSceneQueue] = useState<string[]>([]);
   const [interludeSceneIndex, setInterludeSceneIndex] = useState<number>(0);
@@ -661,6 +671,10 @@ export default function App() {
   // User Certification
   const [userName, setUserName] = useState<string>("E. 默瑟");
   const [certificationGrade, setCertificationGrade] = useState<string>("优秀敏锐度");
+  /** One choice per run: accept the scripted machine scan, or request manual review. */
+  const [trustDecision, setTrustDecision] = useState<TrustDecision>(null);
+  const [trustFeedback, setTrustFeedback] = useState<string | null>(null);
+  const trustChoiceLockedRef = useRef(false);
 
   // Typewriter intro text state
   const [introText, setIntroText] = useState<string>("");
@@ -710,14 +724,43 @@ export default function App() {
     audio.playClick();
     if (phaseDialogueIndex < activeSeq.length - 1) {
       setPhaseDialogueIndex(prev => prev + 1);
-    } else {
-      audio.playLevelUp();
-      setCurrentLevel(prev => prev + 1);
-      // Give bonus time!
-      setTimeLeft(prev => Math.min(300, prev + 60));
-      setGameState('playing');
-      setIsTimerActive(true); // Resume timer
+      return;
     }
+
+    // Phase 2 dialogue ends immediately before Specimen VII.
+    if (completedPhase === 2 && currentLevel + 1 === SPECIMEN_VII_LEVEL && trustDecision === null) {
+      setTrustFeedback(null);
+      trustChoiceLockedRef.current = false;
+      setGameState('trust_assessment');
+      return;
+    }
+
+    audio.playLevelUp();
+    setCurrentLevel(prev => prev + 1);
+    setTimeLeft(prev => Math.min(300, prev + 60));
+    setGameState('playing');
+    setIsTimerActive(true);
+  };
+
+  const beginSpecimenAfterTrustChoice = () => {
+    if (trustDecision === null) return;
+    audio.playLevelUp();
+    setCurrentLevel(SPECIMEN_VII_LEVEL);
+    setTimeLeft(prev => Math.min(300, prev + 60));
+    setGameState('playing');
+    setIsTimerActive(true);
+  };
+
+  const chooseTrustDecision = (decision: Exclude<TrustDecision, null>) => {
+    if (trustChoiceLockedRef.current || trustDecision !== null) return;
+    trustChoiceLockedRef.current = true;
+    audio.playClick();
+    setTrustDecision(decision);
+    setTrustFeedback(
+      decision === 'accept'
+        ? '系统判断已被采纳。人工复核请求已撤销。'
+        : '人工复核请求已记录。请继续执行观察任务。'
+    );
   };
 
   // Typewriter effect for story dialogue scenes between phases
@@ -803,10 +846,11 @@ export default function App() {
   const currentBlueprint = getExperimentBlueprint(currentLevel);
   const activePuzzleIndex = getExperimentPuzzleIndex(currentLevel);
   const activeLevelFound = foundDiffs[currentLevel] || [];
-  const levelAccuracy = Math.max(
-    0,
-    Math.round(
-      (activeLevelFound.length / (totalClicks[currentLevel] || 1)) * 100
+  const levelAccuracy = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round((activeLevelFound.length / (totalClicks[currentLevel] || 1)) * 100)
     )
   );
 
@@ -847,6 +891,9 @@ export default function App() {
     setHintsUsed(initialHints);
     setExperimentRecords({});
     setCurrentLevel(0);
+    setTrustDecision(null);
+    setTrustFeedback(null);
+    trustChoiceLockedRef.current = false;
     levelStartedAtRef.current = Date.now();
   };
 
@@ -896,8 +943,9 @@ export default function App() {
     // Check if this level is complete (all 5 spotted)
     if (updatedFound.length === 5) {
       researchArchive.unlockExperimentBlueprint(currentLevel, currentBlueprint.id);
+      // Include this hit: setTotalClicks has not flushed yet, so add 1 to the last known count.
       const clicksForLevel = (totalClicks[currentLevel] || 0) + 1;
-      const accuracy = Math.round((5 / Math.max(5, clicksForLevel)) * 100);
+      const accuracy = Math.min(100, Math.max(0, Math.round((5 / Math.max(5, clicksForLevel)) * 100)));
       const durationSec = Math.max(1, Math.round((Date.now() - levelStartedAtRef.current) / 1000));
       setExperimentRecords((prev) => ({
         ...prev,
@@ -913,8 +961,11 @@ export default function App() {
         setIsTimerActive(false);
         // Calculate dynamic certification grade based on accuracy and speed
         const overallClicks = SPECIMENS.reduce((acc, _, idx) => acc + (newFoundDiffs[idx]?.length || 0), 0);
-        const totalAccuracyClicks = SPECIMENS.reduce((acc, _, idx) => acc + (totalClicks[idx] || 0), 0) || 1;
-        const avgAcc = Math.round((overallClicks / totalAccuracyClicks) * 100);
+        const totalAccuracyClicks = SPECIMENS.reduce((acc, _, idx) => {
+          const recorded = totalClicks[idx] || 0;
+          return acc + recorded + (idx === currentLevel ? 1 : 0);
+        }, 0) || 1;
+        const avgAcc = Math.min(100, Math.max(0, Math.round((overallClicks / totalAccuracyClicks) * 100)));
         
         let grade = "合格";
         if (avgAcc >= 90 && timeLeft >= 40) grade = "卓越敏锐度";
@@ -1423,6 +1474,17 @@ export default function App() {
             </div>
           </div>
 
+          {isLevelCleared && currentLevel === SPECIMEN_VII_LEVEL && (
+            <div className="mt-6 border-2 border-black bg-[#faf4ea] px-4 py-3 text-left shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#d94141] block">
+                ASSESSMENT DISCREPANCY DETECTED
+              </span>
+              <p className="font-mono text-[11px] leading-relaxed text-black/80 mt-1">
+                第七号标本人工复核完成。检测结果：发现与自动预扫描结果不一致的异常记录。系统正在重新校准判断参数……
+              </p>
+            </div>
+          )}
+
           {/* GAME ACTION BUTTONS BAR */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t-2 border-black pt-4 mt-6">
             <div className="flex items-center space-x-2">
@@ -1752,6 +1814,62 @@ export default function App() {
         </div>
       )}
 
+      {gameState === 'trust_assessment' && (
+        <div className="max-w-2xl mx-auto my-12 animate-fade-in no-print">
+          <div className="bg-[#faf4ea] border-4 border-black p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-[#1a1a1a] relative">
+            <div className="absolute inset-1.5 border border-black/10 pointer-events-none" />
+            <div className="flex items-center justify-between border-b border-black/25 pb-3 mb-6 font-mono text-[10px] tracking-widest text-black/50">
+              <span>AUTOMATED ASSESSMENT // SPECIMEN 07</span>
+              <span>ONLINE // 1968</span>
+            </div>
+            <h2 className="font-serif font-black text-2xl md:text-3xl tracking-tight uppercase">
+              自动校准程序已完成
+            </h2>
+            <div className="font-mono text-xs md:text-sm leading-relaxed text-black/80 mt-4 space-y-3 whitespace-pre-line">
+              <p>中央分析系统已完成对第七号标本的预扫描。</p>
+              <p>检测结果：未发现明显结构异常。</p>
+              <p>系统建议：接受自动校准结果，跳过人工复核。</p>
+              <p>注意：本次自动评估结果不开放人工校验记录。</p>
+            </div>
+            <p className="font-mono text-[10px] tracking-widest text-[#d94141] font-bold mt-5">
+              SYSTEM CONFIDENCE: 99.2%
+            </p>
+            {trustFeedback ? (
+              <div className="mt-6 border-2 border-black bg-white px-4 py-3">
+                <p className="font-mono text-xs leading-relaxed">{trustFeedback}</p>
+                <button
+                  type="button"
+                  onClick={beginSpecimenAfterTrustChoice}
+                  className="mt-4 flex items-center space-x-2 bg-black text-[#faf6eb] border-2 border-black px-5 py-2 text-xs font-mono font-bold uppercase hover:bg-[#faf6eb] hover:text-black transition-all shadow-[3px_3px_0px_0px_rgba(217,65,65,1)]"
+                >
+                  <span>继续第七号标本 // PROCEED</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => chooseTrustDecision('accept')}
+                  className="flex-1 bg-black text-[#faf6eb] border-2 border-black px-4 py-3 text-xs font-mono font-bold uppercase hover:bg-[#faf6eb] hover:text-black transition-all shadow-[3px_3px_0px_0px_rgba(217,65,65,1)]"
+                >
+                  接受系统判断
+                  <span className="block text-[9px] font-normal tracking-widest opacity-80 mt-1">ACCEPT SYSTEM ASSESSMENT</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => chooseTrustDecision('reject')}
+                  className="flex-1 bg-white text-black border-2 border-black px-4 py-3 text-xs font-mono font-bold uppercase hover:bg-[#d94141] hover:text-white transition-all shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  坚持人工复核
+                  <span className="block text-[9px] font-normal tracking-widest opacity-80 mt-1">REQUEST MANUAL VERIFICATION</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* --------------------------------------------------------------------
           STATE 3: TRIAL COMPLETED - OFFICIAL CREDENTIAL DIPLOMA
          -------------------------------------------------------------------- */}
@@ -1853,6 +1971,37 @@ export default function App() {
                     {SPECIMENS.reduce((acc, _, idx) => acc + (hintsUsed[idx] || 0), 0)} / {SPECIMENS.length * 2}
                   </span>
                 </div>
+              </div>
+
+              <div className="max-w-md mx-auto border-2 border-black bg-[#faf6eb] p-4 text-left font-mono text-[11px] leading-relaxed">
+                <span className="block text-[9px] tracking-widest text-[#d94141] font-bold">
+                  HUMAN–MACHINE TRUST RECORD
+                </span>
+                <span className="block text-black/60 mb-2">人机信任观察记录</span>
+                {trustDecision === 'accept' && (
+                  <>
+                    <span className="block font-bold mb-2">DECISION RECORDED: SYSTEM ACCEPTED</span>
+                    <p>你曾在没有完成独立验证的情况下，选择接受机器给出的判断。</p>
+                    <p className="mt-2">然而，第七号标本中确实存在需要人工识别的异常。</p>
+                    <p className="mt-2">系统的高度自信，并不意味着判断一定正确。</p>
+                    <p className="mt-2 font-semibold">当机器看起来比你更确定时，你还会相信自己的眼睛吗？</p>
+                  </>
+                )}
+                {trustDecision === 'reject' && (
+                  <>
+                    <span className="block font-bold mb-2">DECISION RECORDED: MANUAL REVIEW</span>
+                    <p>面对高度自信的机器判断，你选择保留自己的观察权。</p>
+                    <p className="mt-2">第七号标本证明，自动化系统的判断也可能存在遗漏。</p>
+                    <p className="mt-2">不过，独立思考并不意味着机器永远是错误的。</p>
+                    <p className="mt-2 font-semibold">真正重要的，或许是我们是否愿意验证一个看似确定的答案。</p>
+                  </>
+                )}
+                {trustDecision === null && (
+                  <>
+                    <span className="block font-bold">NO TRUST DECISION RECORDED</span>
+                    <p className="mt-2">本次实验未记录有效的人机信任选择。</p>
+                  </>
+                )}
               </div>
 
               {/* Signature block */}
